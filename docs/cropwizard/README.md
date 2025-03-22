@@ -4,7 +4,7 @@ description: Quickstart on how to get the most out of Cropwizard.
 
 # CropWizard
 
-CropWizard is a cutting-edge AI agronomy assistant that answers agricultural questions with expert precision. It consults over 450,000 selected online publications, including Extension resources from US land-grant universities and a growing set of open-access research publications. It can be used as:
+CropWizard is a cutting-edge AI agronomy assistant that answers agricultural questions with expert precision. It consults over 400,000 selected online publications, including Extension resources from US land-grant universities and a growing set of open-access research publications. It can be used as:
 
 * **a "virtual agronomist":** to obtain farming advice;
 * **a research assistant:** to find the most relevant online publications for a topic of interest;
