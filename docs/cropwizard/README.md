@@ -88,6 +88,8 @@ Example: _Give me a detailed explanation of hairy vetch as a cover crop. Explain
 
 For detailed information about the Pest Detection tool, check out the [Pest Detection Tool page](https://app.gitbook.com/o/SfApyd80yHo8lLe0r7PA/s/vdrzNTxffjmyrhd2NKsD/~/changes/87/cropwizard/pest-detection-tool).
 
+For detailed information on how tools work on Illinois Chat, check out the [tool-use-in-conversation.md](../features/tool-use-in-conversation.md "mention") page.
+
 ### Example Questions
 
 > What are the best practices for crop rotation in corn production?
