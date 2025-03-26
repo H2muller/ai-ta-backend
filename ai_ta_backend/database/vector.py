@@ -132,8 +132,7 @@ class VectorDatabase():
     """
     Search the vector database for a given query.
     """
-    # top_n = 10
-    # Search the vector database
+    # Search the pubmed vector database
     search_results = self.vyriad_qdrant_client.search(
         collection_name='embedding',  # Pubmed embeddings
         with_vectors=False,
@@ -152,7 +151,6 @@ class VectorDatabase():
 
       if not response.ok:
         print(f"Error in retrieving Pubmed text details: {response.status_code}")
-        # return []
       else:
         # Create mapping of context_id to text from response
         context_texts = response.json()
