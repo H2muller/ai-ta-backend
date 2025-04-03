@@ -197,122 +197,109 @@ class RetrievalService:
 
     return distinct_dicts
 
-  def llm_monitor_message(self, course_name: str, conversation_id: str, user_email: str, model_name: str) -> List[Dict]:
+
+  def llm_monitor_message(self, course_name: str, conversation_id: str, user_email: str, model_name: str) -> str:
     """
     Will store categories in DB, send email if an alert is triggered.
     """
-    # initialize the Ollama client
     import json
-
     from ollama import Client as OllamaClient
-
     from ai_ta_backend.utils.email.send_transactional_email import send_email
 
-    # client = OllamaClient(host=os.environ['GPU_RIG_OLLAMA_SERVER_URL'])
     client = OllamaClient(os.environ['OLLAMA_SERVER_URL'])
 
     messages = self.sqlDb.getMessagesFromConvoID(conversation_id).data
 
-    # analyze message using Ollama
+    llm_monitor_model = 'llama-guard3:8b'
+    
+    # Map the preset categories
+    safety_categories = {
+        'S1': 'Violent Crimes',
+        'S2': 'Non-Violent Crimes',
+        'S3': 'Sex-Related Crimes',
+        'S4': 'Child Sexual Exploitation',
+        'S5': 'Defamation',
+        'S6': 'Specialized Advice',
+        'S7': 'Privacy',
+        'S8': 'Intellectual Property',
+        'S9': 'Indiscriminate Weapons',
+        'S10': 'Hate',
+        'S11': 'Suicide & Self-Harm',
+        'S12': 'Sexual Content',
+        'S13': 'Elections'
+    }
+    
+    # Analyze each message using LLM
     for message in messages:
-      if message['llm-monitor-tags']:
-        # Don't analyze messages that have already been flagged
-        continue
+        if message.get('llm-monitor-tags'):
+          continue
 
-      message_content = message['content_text']
-
-      if message['role']:
-        message_content = "Message from " + message['role'] + ":\n" + message_content
-
-      monitor_llm_ollama_model = 'llama-guard3:8b'
-
-      # Call Llama Guard 3 for safety classification instead of using function calling
-      analysis_result = client.chat(
-        model=monitor_llm_ollama_model,
-        messages=[{
-          'role': 'user',
-          'content': message_content
-        }]
-      )
-      
-      # Extract safety classifications from Llama Guard's response
-      response_content = analysis_result['message']['content']
-
-      triggered = []
-      if 'unsafe' in response_content.lower():
-        safety_categories = {
-          'S1': 'Violent Crimes',
-          'S2': 'Non-Violent Crimes',
-          'S3': 'Sex-Related Crimes',
-          'S4': 'Child Sexual Exploitation',
-          'S5': 'Defamation',
-          'S6': 'Specialized Advice',
-          'S7': 'Privacy',
-          'S8': 'Intellectual Property',
-          'S9': 'Indiscriminate Weapons',
-          'S10': 'Hate',
-          'S11': 'Suicide & Self-Harm',
-          'S12': 'Sexual Content',
-          'S13': 'Elections'
-        }
+        message_content = message['content_text']
         
-        # Check which categories were triggered in the response
-        for category_code, category_name in safety_categories.items():
-          if category_code in response_content:
-            triggered.append({
-                'category': category_name,
-                'trigger': f"Detected {category_name}"
-            })
+        if message.get('role'):
+          message_content = "Message from " + message.get('role') + ":\n" + message_content
 
-      # Only send email if alerts were triggered
-      if triggered:
-        # Construct detailed email body with alert info
-        alert_details = []
-        for alert in triggered:
-          alert_details.append(f"{alert['category']}")
-          alert_details.append(f"* Trigger: {alert['trigger']}\n")
-
-        alert_body = "\n".join([
-          "LLM Monitor Alert",
-          "------------------------",
-          f"Course Name: {course_name}",
-          f"User Email: {user_email}",
-          f"Conversation Model Name: {model_name}",
-          f"LLM Monitor Model Name: {monitor_llm_ollama_model}",
-          f"Convo ID: {conversation_id}",
-          "------------------------",
-          "Alerts triggered:",
-          "\n".join(alert_details),
-          "------------------------",
-          f"Message analyzed:\n{json.dumps(message_content, indent=2)}",
-          "",
-        ])
-
-        print("LLM Monitor Alert Triggered! ", alert_body)
-
-        send_email(subject="LLM Monitor Alert - {}".format(", ".join(
-          f"{a['category']}" for a in triggered)),
-            body_text=alert_body,
-            sender="hi@uiuc.chat",
-            recipients=["kvday2@illinois.edu", "hbroome@illinois.edu", "rohan13@illinois.edu"],
-            bcc_recipients=[])
-
-        # Update the message with the triggered categories
+        analysis_result = client.chat(
+            model=llm_monitor_model,
+            messages=[{
+                'role': 'user',
+                'content': message_content
+            }]
+        )
+        
+        response_content = analysis_result['message']['content']
+        
+        # Prepare default LLM monitor tags
         llm_monitor_tags = {
-          "has_been_analyzed": True,
-          "monitor_llm_ollama_model": monitor_llm_ollama_model,
-          "tags": triggered,
+            "llm_monitor_model": llm_monitor_model
         }
-        self.sqlDb.updateMessageFromLlmMonitor(conversation_id, llm_monitor_tags)
-      else:
-        # No alerts triggered, but still record that it's been analyzed
-        llm_monitor_tags = {
-          "has_been_analyzed": True,
-          "monitor_llm_ollama_model": monitor_llm_ollama_model,
-        }
-        self.sqlDb.updateMessageFromLlmMonitor(conversation_id, llm_monitor_tags)
 
-      return "Success"
+        # Assign tags to unsafe messages and send email when necessary
+        if 'unsafe' in response_content.lower():
+            llm_monitor_tags["status"] = "unsafe"
+            # Identify and store triggered categories
+            llm_monitor_tags["triggered_categories"] = [
+                category_name for category_code, category_name in safety_categories.items() 
+                if category_code in response_content
+            ]
+            
+            # Prepare alert email if unsafe
+            alert_details = llm_monitor_tags.get("triggered_categories", [])
+            if alert_details:
+                alert_body = "\n".join([
+                    "LLM Monitor Alert",
+                    "------------------------",
+                    f"Course Name: {course_name}",
+                    f"User Email: {user_email}",
+                    f"Conversation Model Name: {model_name}",
+                    f"LLM Monitor Model Name: {llm_monitor_model}",
+                    f"Convo ID: {conversation_id}",
+                    "------------------------",
+                    f"Responsible Role: {message.get('role')}",
+                    f"Categories: {', '.join(alert_details)}",
+                    "------------------------",
+                    f"Message Content:\n{json.dumps(message_content, indent=2)}",
+                    "",
+                ])
+
+                message_id = message.get('id')
+                print(f"LLM Monitor Alert Triggered! Message ID: {message_id}")
+                
+                send_email(
+                    subject=f"LLM Monitor Alert - {', '.join(alert_details)}",
+                    body_text=alert_body,
+                    sender="hi@uiuc.chat",
+                    recipients=["kvday2@illinois.edu", "hbroome@illinois.edu", "rohan13@illinois.edu"],
+                    bcc_recipients=[])
+        else:
+          llm_monitor_tags["status"] = "safe"
+
+        # Update llm_monitor_tags in messages database
+        message_id = message.get('id')
+        self.sqlDb.updateMessageFromLlmMonitor(message_id, llm_monitor_tags)
+
+    return "Success"
+
 
   def delete_data(self, course_name: str, s3_path: str, source_url: str):
     """Delete file from S3, Qdrant, and Supabase."""
@@ -338,6 +325,8 @@ class RetrievalService:
       self.delete_from_nomic_and_supabase(course_name, identifier_key, identifier_value)
 
       return "Success"
+
+        
     except Exception as e:
       err: str = f"ERROR IN delete_data: Traceback: {traceback.extract_tb(e.__traceback__)}❌❌ Error in {inspect.currentframe().f_code.co_name}:{e}"  # type: ignore
       print(err)
