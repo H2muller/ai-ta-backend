@@ -15,19 +15,19 @@ vector_size = 1536
 
 destination_vector_db.recreate_collection(
     collection_name=destination_collection_name,
-    on_disk_payload=True,
-    optimizers_config=models.OptimizersConfigDiff(indexing_threshold=10_000_000),
+    on_disk_payload=True, # ON DISK Payload (metadata)
+    optimizers_config=models.OptimizersConfigDiff(indexing_threshold=100_000_000),
     vectors_config=models.VectorParams(
         size=vector_size,
         distance=models.Distance.COSINE,
-        on_disk=True,
+        on_disk=True, # ON DISK Vectors
         hnsw_config=models.HnswConfigDiff(on_disk=False),  # In memory HNSW.
     ),
 )
 
 offset = None
 counter = 0
-batch_size = 250
+batch_size = 1000
 
 while True:
   res = source_vector_db.scroll(
@@ -54,3 +54,10 @@ while True:
   offset = res[1]  # Get next_page_offset
   if offset is None:  # If next_page_offset is None, we've reached the last page
     break
+
+print("Done copying over vectors. Now creating vector index (Will happen in background)")
+destination_vector_db.update_collection(
+    collection_name=destination_collection_name,
+    optimizer_config=models.OptimizersConfigDiff(indexing_threshold=1_000),
+)
+print("Done. (Still indexing in background)")
