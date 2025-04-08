@@ -10,8 +10,6 @@ description: >-
 
 We're becoming an production Illinois service. Let's take a look at our costs before we launch to campus (anticipated full campus advertising campeign in September 2025).&#x20;
 
-
-
 ### Core Services
 
 LLM inference is the most expensive part of the app, but we pass that onto the user with a "BYO API Keys" model. $0.&#x20;
@@ -60,27 +58,29 @@ We're going to move this somewhere else more cost effective.&#x20;
 
 #### Redis
 
-Purchased via Redis Cloud on AWS Marketplace. I think just flat rate $10/mo. Using AWS credits supplied to the [Center for AI Innovation](https://ai.ncsa.illinois.edu/).
+Purchased via Redis Cloud on AWS Marketplace, just a flat rate $5/mo. Using AWS credits supplied to the [Center for AI Innovation](https://ai.ncsa.illinois.edu/).
 
 #### AWS S3 ($25/mo)
 
 This ranges from $10-$30/mo, depending on egress costs.
 
-
-
 ### Newsletter $16/mo
 
 Mailgun + Ghost (self hosted) powers news.uiuc.chat. Mailgun is the only supported provider for Ghost, we pay Mailgun a base of $15/mo + usage, averaging $16/mo.&#x20;
 
-| Service             | $/mo | Notes                               |
-| ------------------- | ---- | ----------------------------------- |
-| Frontend            | $30  |                                     |
-| Backend             | $82  |                                     |
-| Databases           | $444 | $329 is Qdrant, which we're moving. |
-| Supporting services | $16  | Newsletter sending.                 |
-| **Total**           | $572 |                                     |
+### Nomic Atlas $100/mo
 
+A fantastic startup creating visualizations of embedding spaces. We use this to (1) visualize all the documents a user has uploaded and (2) visualize all the conversations in each chatbot. Both have great filtering, search, clutering, hierarchical topic labeling. It's pretty great. They give us $100/mo education pricing.
 
+## Total costs
+
+| Service             | $/mo  | Notes                                                                        |
+| ------------------- | ----- | ---------------------------------------------------------------------------- |
+| Frontend            | $30   |                                                                              |
+| Backend             | $82   |                                                                              |
+| Databases           | $439  | $329 is Qdrant, which we're moving somewhere cheaper.                        |
+| Supporting services | $116  | Mailgun + Nomic Atlas.                                                       |
+| **Total**           | $667  | Soon to be $367 w/ cheaper Qdrant. Largest costs are covered by AWS credits. |
 
 
 
