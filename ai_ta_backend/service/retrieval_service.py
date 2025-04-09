@@ -197,13 +197,14 @@ class RetrievalService:
 
     return distinct_dicts
 
-
   def llm_monitor_message(self, course_name: str, conversation_id: str, user_email: str, model_name: str) -> str:
     """
     Will store categories in DB, send email if an alert is triggered.
     """
     import json
+
     from ollama import Client as OllamaClient
+
     from ai_ta_backend.utils.email.send_transactional_email import send_email
 
     client = OllamaClient(os.environ['OLLAMA_SERVER_URL'])
@@ -211,7 +212,7 @@ class RetrievalService:
     messages = self.sqlDb.getMessagesFromConvoID(conversation_id).data
 
     llm_monitor_model = 'llama-guard3:8b'
-    
+
     # Map the preset categories
     safety_categories = {
         'S1': 'Violent Crimes',
@@ -228,78 +229,68 @@ class RetrievalService:
         'S12': 'Sexual Content',
         'S13': 'Elections'
     }
-    
+
     # Analyze each message using LLM
     for message in messages:
-        if message.get('llm-monitor-tags'):
-          continue
+      if message.get('llm-monitor-tags'):
+        continue
 
-        message_content = message['content_text']
-        
-        if message.get('role'):
-          message_content = "Message from " + message.get('role') + ":\n" + message_content
+      message_content = message['content_text']
 
-        analysis_result = client.chat(
-            model=llm_monitor_model,
-            messages=[{
-                'role': 'user',
-                'content': message_content
-            }]
-        )
-        
-        response_content = analysis_result['message']['content']
-        
-        # Prepare default LLM monitor tags
-        llm_monitor_tags = {
-            "llm_monitor_model": llm_monitor_model
-        }
+      if message.get('role'):
+        message_content = "Message from " + message.get('role') + ":\n" + message_content
 
-        # Assign tags to unsafe messages and send email when necessary
-        if 'unsafe' in response_content.lower():
-            llm_monitor_tags["status"] = "unsafe"
-            # Identify and store triggered categories
-            llm_monitor_tags["triggered_categories"] = [
-                category_name for category_code, category_name in safety_categories.items() 
-                if category_code in response_content
-            ]
-            
-            # Prepare alert email if unsafe
-            alert_details = llm_monitor_tags.get("triggered_categories", [])
-            if alert_details:
-                alert_body = "\n".join([
-                    "LLM Monitor Alert",
-                    "------------------------",
-                    f"Course Name: {course_name}",
-                    f"User Email: {user_email}",
-                    f"Conversation Model Name: {model_name}",
-                    f"LLM Monitor Model Name: {llm_monitor_model}",
-                    f"Convo ID: {conversation_id}",
-                    "------------------------",
-                    f"Responsible Role: {message.get('role')}",
-                    f"Categories: {', '.join(alert_details)}",
-                    "------------------------",
-                    f"Message Content:\n{json.dumps(message_content, indent=2)}",
-                    "",
-                ])
+      analysis_result = client.chat(model=llm_monitor_model, messages=[{'role': 'user', 'content': message_content}])
 
-                message_id = message.get('id')
-                print(f"LLM Monitor Alert Triggered! Message ID: {message_id}")
-                
-                send_email(
-                    subject=f"LLM Monitor Alert - {', '.join(alert_details)}",
-                    body_text=alert_body,
-                    sender="hi@uiuc.chat",
-                    recipients=["kvday2@illinois.edu", "hbroome@illinois.edu", "rohan13@illinois.edu"],
-                    bcc_recipients=[])
-        else:
-          llm_monitor_tags["status"] = "safe"
+      response_content = analysis_result['message']['content']
 
-        # Update llm_monitor_tags in messages database
-        message_id = message.get('id')
-        self.sqlDb.updateMessageFromLlmMonitor(message_id, llm_monitor_tags)
+      # Prepare default LLM monitor tags
+      llm_monitor_tags = {"llm_monitor_model": llm_monitor_model}
+
+      # Assign tags to unsafe messages and send email when necessary
+      if 'unsafe' in response_content.lower():
+        llm_monitor_tags["status"] = "unsafe"
+        # Identify and store triggered categories
+        llm_monitor_tags["triggered_categories"] = [
+            category_name for category_code, category_name in safety_categories.items()
+            if category_code in response_content
+        ]
+
+        # Prepare alert email if unsafe
+        alert_details = llm_monitor_tags.get("triggered_categories", [])
+        if alert_details:
+          alert_body = "\n".join([
+              "LLM Monitor Alert",
+              "------------------------",
+              f"Course Name: {course_name}",
+              f"User Email: {user_email}",
+              f"Conversation Model Name: {model_name}",
+              f"LLM Monitor Model Name: {llm_monitor_model}",
+              f"Convo ID: {conversation_id}",
+              "------------------------",
+              f"Responsible Role: {message.get('role')}",
+              f"Categories: {', '.join(alert_details)}",
+              "------------------------",
+              f"Message Content:\n{json.dumps(message_content, indent=2)}",
+              "",
+          ])
+
+          message_id = message.get('id')
+          # print(f"LLM Monitor Alert Triggered! Message ID: {message_id}")
+
+          send_email(subject=f"LLM Monitor Alert - {', '.join(alert_details)}",
+                     body_text=alert_body,
+                     sender="hi@uiuc.chat",
+                     recipients=["kvday2@illinois.edu", "hbroome@illinois.edu", "rohan13@illinois.edu"],
+                     bcc_recipients=[])
+      else:
+        llm_monitor_tags["status"] = "safe"
+
+      # Update llm_monitor_tags in messages database
+      message_id = message.get('id')
+      self.sqlDb.updateMessageFromLlmMonitor(message_id, llm_monitor_tags)
 
     return "Success"
-
 
   def delete_data(self, course_name: str, s3_path: str, source_url: str):
     """Delete file from S3, Qdrant, and Supabase."""
@@ -326,7 +317,6 @@ class RetrievalService:
 
       return "Success"
 
-        
     except Exception as e:
       err: str = f"ERROR IN delete_data: Traceback: {traceback.extract_tb(e.__traceback__)}❌❌ Error in {inspect.currentframe().f_code.co_name}:{e}"  # type: ignore
       print(err)
@@ -633,84 +623,84 @@ class RetrievalService:
         to_date (str, optional): End date in ISO format
     """
     try:
-        conversations, total_count = self.sqlDb.getConversationsCreatedAtByCourse(course_name, from_date, to_date)
+      conversations, total_count = self.sqlDb.getConversationsCreatedAtByCourse(course_name, from_date, to_date)
 
-        response_data = {
-            'per_day': {},
-            'per_hour': {
-                str(hour): 0 for hour in range(24)
-            },
-            'per_weekday': {
-                day: 0 for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            },
-            'heatmap': {
-                day: {
-                    str(hour): 0 for hour in range(24)
-                } for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            },
-            'total_count': 0
-        }
+      response_data = {
+          'per_day': {},
+          'per_hour': {
+              str(hour): 0 for hour in range(24)
+          },
+          'per_weekday': {
+              day: 0 for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+          },
+          'heatmap': {
+              day: {
+                  str(hour): 0 for hour in range(24)
+              } for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+          },
+          'total_count': 0
+      }
 
-        if not conversations:
-            return response_data
+      if not conversations:
+        return response_data
 
-        central_tz = pytz.timezone('America/Chicago')
-        grouped_data = {
-            'per_day': defaultdict(int),
-            'per_hour': defaultdict(int),
-            'per_weekday': defaultdict(int),
-            'heatmap': defaultdict(lambda: defaultdict(int)),
-        }
+      central_tz = pytz.timezone('America/Chicago')
+      grouped_data = {
+          'per_day': defaultdict(int),
+          'per_hour': defaultdict(int),
+          'per_weekday': defaultdict(int),
+          'heatmap': defaultdict(lambda: defaultdict(int)),
+      }
 
-        for record in conversations:
-            try:
-                created_at = record['created_at']
-                parsed_date = parser.parse(created_at).astimezone(central_tz)
+      for record in conversations:
+        try:
+          created_at = record['created_at']
+          parsed_date = parser.parse(created_at).astimezone(central_tz)
 
-                day = parsed_date.date()
-                hour = parsed_date.hour
-                day_of_week = parsed_date.strftime('%A')
+          day = parsed_date.date()
+          hour = parsed_date.hour
+          day_of_week = parsed_date.strftime('%A')
 
-                grouped_data['per_day'][str(day)] += 1
-                grouped_data['per_hour'][str(hour)] += 1
-                grouped_data['per_weekday'][day_of_week] += 1
-                grouped_data['heatmap'][day_of_week][str(hour)] += 1
-            except Exception as e:
-                print(f"Error processing record: {str(e)}")
-                continue
+          grouped_data['per_day'][str(day)] += 1
+          grouped_data['per_hour'][str(hour)] += 1
+          grouped_data['per_weekday'][day_of_week] += 1
+          grouped_data['heatmap'][day_of_week][str(hour)] += 1
+        except Exception as e:
+          print(f"Error processing record: {str(e)}")
+          continue
 
-        return {
-            'per_day': dict(grouped_data['per_day']),
-            'per_hour': {
-                str(k): v for k, v in grouped_data['per_hour'].items()
-            },
-            'per_weekday': dict(grouped_data['per_weekday']),
-            'heatmap': {
-                day: {
-                    str(h): count for h, count in hours.items()
-                } for day, hours in grouped_data['heatmap'].items()
-            },
-            'total_count': total_count
-        }
+      return {
+          'per_day': dict(grouped_data['per_day']),
+          'per_hour': {
+              str(k): v for k, v in grouped_data['per_hour'].items()
+          },
+          'per_weekday': dict(grouped_data['per_weekday']),
+          'heatmap': {
+              day: {
+                  str(h): count for h, count in hours.items()
+              } for day, hours in grouped_data['heatmap'].items()
+          },
+          'total_count': total_count
+      }
 
     except Exception as e:
-        print(f"Error in getConversationStats for course {course_name}: {str(e)}")
-        self.sentry.capture_exception(e)
-        return {
-            'per_day': {},
-            'per_hour': {
-                str(hour): 0 for hour in range(24)
-            },
-            'per_weekday': {
-                day: 0 for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            },
-            'heatmap': {
-                day: {
-                    str(hour): 0 for hour in range(24)
-                } for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            },
-            'total_count': 0
-        }
+      print(f"Error in getConversationStats for course {course_name}: {str(e)}")
+      self.sentry.capture_exception(e)
+      return {
+          'per_day': {},
+          'per_hour': {
+              str(hour): 0 for hour in range(24)
+          },
+          'per_weekday': {
+              day: 0 for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+          },
+          'heatmap': {
+              day: {
+                  str(hour): 0 for hour in range(24)
+              } for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+          },
+          'total_count': 0
+      }
 
   def getProjectStats(self, project_name: str) -> ProjectStats:
     """
