@@ -97,6 +97,16 @@ Using N8N for a user-friendly GUI to define custom tools. This way, any user can
        ```
 3. During this time, the frontend is poling the SQL database to update the website GUI with success/failed indicators.&#x20;
 
+#### **Document ingest during web crawling**&#x20;
+
+While web crawling we always link to the source materials, like a search engine. Our citations operate like Perplexity or ChatGPT with Search; crawl the web and link to the original sources.
+
+Compatible "files" are uploaded to S3, including PDFs, Word, PPT, Excel. Even that, that's just a backup - we always link to the original source, and attempt to detect when they're 404 missing and fallback to our local version.&#x20;
+
+Most web pages are not files, they're HTML, and that is _**not**_ uploaded to S3. Instead it's stored directly in SQL, and we link to the original source, just like a search engine.&#x20;
+
+<figure><img src="../.gitbook/assets/image (5).png" alt=""><figcaption><p>Document ingest during web crawling.</p></figcaption></figure>
+
 ## Self-hostable version (coming Q1 2025)
 
 Simplify to a single Docker-compose script.
