@@ -129,7 +129,7 @@ class VectorDatabase():
       for result in search_results:
         result.payload['page_content'] = result.payload['page_content']
         result.payload['readable_filename'] = result.payload['readable_filename']
-        result.payload['s3_path'] = "pubmed/" + result.payload['s3_path']
+        result.payload['s3_path'] = result.payload['s3_path']
         result.payload['pagenumber'] = result.payload['pagenumber']
         result.payload['course_name'] = course_name
         updated_results.append(result)
