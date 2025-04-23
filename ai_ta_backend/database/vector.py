@@ -117,7 +117,7 @@ class VectorDatabase():
     """
     # Search the vector database
     search_results = self.vyriad_qdrant_client.search(
-        collection_name='embedding',  # Pubmed embeddings
+        collection_name='pubmed',  # Pubmed embeddings
         with_vectors=False,
         query_vector=user_query_embedding,
         limit=120,  # Return n closest points
