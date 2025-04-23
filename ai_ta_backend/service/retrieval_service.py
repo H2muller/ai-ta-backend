@@ -106,7 +106,7 @@ class RetrievalService:
 
       if course_name == "vyriad":
         embedding_client = self.nomic_embeddings
-      elif course_name == "pubmed":
+      elif course_name == "pubmed" or course_name == "patents":
         embedding_client = self.nomic_embeddings
       else:
         embedding_client = self.embeddings
