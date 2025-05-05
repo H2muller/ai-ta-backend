@@ -3,6 +3,7 @@ description: >-
   I'm being extremely transparent. It's a core value of mine. Hopefully you can
   learn from our decisions.
 hidden: true
+noIndex: true
 ---
 
 # Cost of Service
