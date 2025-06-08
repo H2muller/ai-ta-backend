@@ -44,6 +44,7 @@ from ai_ta_backend.service.workflow_service import WorkflowService
 from ai_ta_backend.utils.email.send_transactional_email import send_email
 from ai_ta_backend.utils.pubmed_extraction import extractPubmedData
 from ai_ta_backend.utils.rerun_webcrawl_for_project import webscrape_documents
+from ai_ta_backend.benchmarking import RAG_eval
 
 app = Flask(__name__)
 CORS(app)
@@ -656,6 +657,18 @@ def pubmedExtraction():
   response.headers.add('Access-Control-Allow-Origin', '*')
   return response
 
+@app.route('/runRAG_eval', methods=['POST'])
+def runRAG_eval():
+  """
+  Extracts metadata and download papers from PubMed.
+  """
+
+
+  questions = request.json.get('questions', '')
+  result = RAG_eval.main(questions)
+  response = jsonify(result)
+  response.headers.add('Access-Control-Allow-Origin', '*')
+  return response
 
 @app.route('/getProjectStats', methods=['GET'])
 def get_project_stats(service: RetrievalService) -> Response:
