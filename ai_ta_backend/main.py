@@ -41,10 +41,10 @@ from ai_ta_backend.service.project_service import ProjectService
 from ai_ta_backend.service.retrieval_service import RetrievalService
 from ai_ta_backend.service.sentry_service import SentryService
 from ai_ta_backend.service.workflow_service import WorkflowService
+from ai_ta_backend.service.evaluation_service import EvaluationService
 from ai_ta_backend.utils.email.send_transactional_email import send_email
 from ai_ta_backend.utils.pubmed_extraction import extractPubmedData
 from ai_ta_backend.utils.rerun_webcrawl_for_project import webscrape_documents
-from ai_ta_backend.benchmarking import RAG_eval
 
 app = Flask(__name__)
 CORS(app)
@@ -657,15 +657,15 @@ def pubmedExtraction():
   response.headers.add('Access-Control-Allow-Origin', '*')
   return response
 
-@app.route('/runRAG_eval', methods=['POST'])
-def runRAG_eval():
+@app.route('/evaluate', methods=['POST'])
+def evaluate(service: EvaluationService) -> Response:
   """
-  Extracts metadata and download papers from PubMed.
+  Runs the evaluation service
   """
-
-
   questions = request.json.get('questions', '')
-  result = RAG_eval.main(questions)
+  judge = request.json.get('judge', ["gpt-4o-mini"])
+
+  result = service.evaluate(questions, judge)
   response = jsonify(result)
   response.headers.add('Access-Control-Allow-Origin', '*')
   return response
@@ -764,6 +764,7 @@ def configure(binder: Binder) -> None:
   binder.bind(ThreadPoolExecutorInterface, to=ThreadPoolExecutorAdapter(max_workers=10), scope=SingletonScope)
   binder.bind(ProcessPoolExecutorInterface, to=ProcessPoolExecutorAdapter(max_workers=10), scope=SingletonScope)
   binder.bind(RetrievalService, to=RetrievalService, scope=RequestScope)
+  binder.bind(EvaluationService, to=EvaluationService, scope=SingletonScope)
   binder.bind(PosthogService, to=PosthogService, scope=SingletonScope)
   # binder.bind(SentryService, to=SentryService, scope=SingletonScope)
   binder.bind(NomicService, to=NomicService, scope=SingletonScope)
